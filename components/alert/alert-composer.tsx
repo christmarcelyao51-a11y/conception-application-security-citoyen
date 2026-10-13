@@ -1,0 +1,203 @@
+'use client'
+
+import { ArrowLeft, Keyboard, MapPin, Mic, Send, Video } from 'lucide-react'
+import { useState } from 'react'
+import type { Analysis } from '@/lib/analysis'
+import type { GeoState } from '@/hooks/use-geolocation'
+import { SERVICES, getService, type ServiceId } from '@/lib/services'
+import { cn } from '@/lib/utils'
+import { AiAnalysisCard } from './ai-analysis-card'
+import { ManualInput } from './manual-input'
+import { VideoCapture } from './video-capture'
+import { VoiceInput } from './voice-input'
+
+type Mode = 'video' | 'voice' | 'text'
+
+const MODES: { id: Mode; label: string; icon: typeof Video }[] = [
+  { id: 'video', label: 'Vidéo direct', icon: Video },
+  { id: 'voice', label: 'Vocal', icon: Mic },
+  { id: 'text', label: 'Texte', icon: Keyboard },
+]
+
+export type ComposedAlert = {
+  serviceId: ServiceId
+  description: string
+  transcript: string
+  hasVideo: boolean
+  analysis: Analysis | null
+}
+
+type AlertComposerProps = {
+  initialService: ServiceId
+  initialMode?: Mode
+  geo: GeoState
+  onBack: () => void
+  onSend: (alert: ComposedAlert) => void
+}
+
+export function AlertComposer({ initialService, initialMode = 'video', geo, onBack, onSend }: AlertComposerProps) {
+  const [serviceId, setServiceId] = useState<ServiceId>(initialService)
+  const [mode, setMode] = useState<Mode>(initialMode)
+  const [description, setDescription] = useState('')
+  const [transcript, setTranscript] = useState('')
+  const [frames, setFrames] = useState<string[]>([])
+  const [hasVideo, setHasVideo] = useState(false)
+  const [analysis, setAnalysis] = useState<Analysis | null>(null)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [analysisError, setAnalysisError] = useState<string | null>(null)
+
+  const service = getService(serviceId)
+  const hasContent = description.trim().length > 0 || transcript.trim().length > 0 || frames.length > 0
+
+  async function analyze() {
+    setAnalyzing(true)
+    setAnalysisError(null)
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serviceId,
+          description,
+          transcript,
+          frames,
+          location:
+            geo.status === 'granted'
+              ? { ...geo.position, accuracy: geo.accuracy ?? undefined }
+              : undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Analyse impossible')
+      setAnalysis(data as Analysis)
+    } catch (e) {
+      setAnalysisError(e instanceof Error ? e.message : 'Analyse impossible')
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
+  return (
+    <div className="flex min-h-dvh flex-col">
+      <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex size-10 items-center justify-center rounded-full bg-secondary"
+            aria-label="Retour"
+          >
+            <ArrowLeft className="size-5" aria-hidden="true" />
+          </button>
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-wide text-primary">Nouvelle alerte</p>
+            <h1 className="truncate text-lg font-bold">{service.label}</h1>
+          </div>
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto px-4 pb-3" role="radiogroup" aria-label="Service d’urgence">
+          {SERVICES.map((s) => {
+            const Icon = s.icon
+            const active = s.id === serviceId
+            return (
+              <button
+                key={s.id}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => setServiceId(s.id)}
+                className={cn(
+                  'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
+                  active ? 'border-primary bg-primary text-primary-foreground' : 'bg-secondary hover:bg-accent',
+                )}
+              >
+                <Icon className="size-4" aria-hidden="true" />
+                {s.label}
+              </button>
+            )
+          })}
+        </div>
+      </header>
+
+      <main className="flex flex-1 flex-col gap-5 px-4 pt-4 pb-32">
+        <div className="flex items-center gap-3 rounded-xl border bg-card px-3 py-2.5">
+          <MapPin className="size-4 shrink-0 text-success" aria-hidden="true" />
+          <p className="min-w-0 flex-1 truncate text-sm">
+            {geo.status === 'granted' ? (
+              <>
+                Position partagée{' '}
+                <span className="font-mono text-xs text-muted-foreground">
+                  {geo.position.lat.toFixed(5)}, {geo.position.lng.toFixed(5)}
+                </span>
+              </>
+            ) : geo.status === 'pending' ? (
+              'Localisation en cours…'
+            ) : (
+              <span className="text-warning">Localisation indisponible — activez le GPS</span>
+            )}
+          </p>
+          {geo.accuracy ? (
+            <span className="shrink-0 text-xs text-muted-foreground">±{Math.round(geo.accuracy)} m</span>
+          ) : null}
+        </div>
+
+        <div className="grid grid-cols-3 gap-1 rounded-xl bg-secondary p-1" role="tablist" aria-label="Mode de saisie">
+          {MODES.map((m) => {
+            const Icon = m.icon
+            const active = m.id === mode
+            return (
+              <button
+                key={m.id}
+                type="button"
+                role="tab"
+                id={`tab-${m.id}`}
+                aria-selected={active}
+                aria-controls={`panel-${m.id}`}
+                onClick={() => setMode(m.id)}
+                className={cn(
+                  'flex items-center justify-center gap-1.5 rounded-lg px-2 py-2.5 text-sm font-medium transition-colors',
+                  active ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <Icon className="size-4" aria-hidden="true" />
+                {m.label}
+              </button>
+            )
+          })}
+        </div>
+
+        <div role="tabpanel" id="panel-video" aria-labelledby="tab-video" hidden={mode !== 'video'}>
+          <VideoCapture onFramesChange={setFrames} onRecordedChange={setHasVideo} />
+        </div>
+        <div role="tabpanel" id="panel-voice" aria-labelledby="tab-voice" hidden={mode !== 'voice'}>
+          <VoiceInput transcript={transcript} onTranscriptChange={setTranscript} />
+        </div>
+        <div role="tabpanel" id="panel-text" aria-labelledby="tab-text" hidden={mode !== 'text'}>
+          <ManualInput value={description} onChange={setDescription} />
+        </div>
+
+        <AiAnalysisCard
+          analysis={analysis}
+          loading={analyzing}
+          error={analysisError}
+          canAnalyze={hasContent}
+          onAnalyze={analyze}
+        />
+      </main>
+
+      <div className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md border-t bg-background/95 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
+        <button
+          type="button"
+          onClick={() => onSend({ serviceId, description, transcript, hasVideo: hasVideo || frames.length > 0, analysis })}
+          className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-base font-bold text-primary-foreground shadow-lg shadow-primary/30 transition-transform active:scale-[0.98]"
+        >
+          <Send className="size-5" aria-hidden="true" />
+          Envoyer l’alerte — {service.label}
+        </button>
+        <p className="mt-2 text-center text-xs text-muted-foreground">
+          Toute fausse alerte est passible de poursuites.
+        </p>
+      </div>
+    </div>
+  )
+}
