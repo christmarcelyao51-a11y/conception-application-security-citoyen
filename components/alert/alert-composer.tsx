@@ -1,6 +1,7 @@
 'use client'
 
 import { ArrowLeft, Keyboard, MapPin, Mic, Send, Video } from 'lucide-react'
+import Image from 'next/image'
 import { useState } from 'react'
 import type { Analysis } from '@/lib/analysis'
 import type { GeoState } from '@/hooks/use-geolocation'
@@ -111,7 +112,7 @@ export function AlertComposer({ initialService, initialMode = 'video', geo, onBa
                   active ? 'border-primary bg-primary text-primary-foreground' : 'bg-secondary hover:bg-accent',
                 )}
               >
-                <Icon className="size-4" aria-hidden="true" />
+                {s.logo ? <Image src={s.logo} alt="" width={18} height={18} className="size-4 object-contain" /> : <Icon className="size-4" aria-hidden="true" />}
                 {s.label}
               </button>
             )
@@ -120,8 +121,29 @@ export function AlertComposer({ initialService, initialMode = 'video', geo, onBa
       </header>
 
       <main className="flex flex-1 flex-col gap-5 px-4 pt-4 pb-32">
-        <div className="flex items-center gap-3 rounded-xl border bg-card px-3 py-2.5">
-          <MapPin className="size-4 shrink-0 text-success" aria-hidden="true" />
+        <section className="relative isolate overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/[0.12] via-card to-card p-4 shadow-sm">
+          <div className="pointer-events-none absolute -right-8 -top-8 -z-10 size-36 rounded-full bg-primary/10 blur-2xl" />
+          <div className="flex items-start gap-3">
+            <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border bg-background shadow-sm">
+              {service.logo ? <Image src={service.logo} alt="" width={40} height={40} className="size-10 object-contain p-1" /> : <service.icon className="size-6 text-primary" aria-hidden="true" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Demande de secours</p>
+              <h2 className="mt-1 text-lg font-bold leading-tight">Que se passe-t-il ?</h2>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">Ajoutez quelques détails pour aider le service {service.label} à préparer sa réponse.</p>
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-1.5" aria-label="Étapes de l’alerte">
+            <div className="flex items-center gap-1.5 rounded-lg bg-success/10 px-2 py-2 text-[10px] font-semibold text-success"><span className="flex size-4 items-center justify-center rounded-full bg-success text-[9px] text-white">✓</span>Service choisi</div>
+            <div className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-2 py-2 text-[10px] font-semibold text-primary"><span className="flex size-4 items-center justify-center rounded-full bg-primary text-[9px] text-primary-foreground">2</span>Situation</div>
+            <div className="flex items-center gap-1.5 rounded-lg bg-background/75 px-2 py-2 text-[10px] font-semibold"><span className="flex size-4 items-center justify-center rounded-full bg-secondary text-[9px]">3</span>Envoi</div>
+          </div>
+        </section>
+
+        <div className={cn('flex items-center gap-3 rounded-xl border px-3 py-3 transition-colors', geo.status === 'granted' ? 'border-success/20 bg-success/5' : 'border-warning/20 bg-warning/5')}>
+          <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-xl', geo.status === 'granted' ? 'bg-success/10' : 'bg-warning/10')}>
+            <MapPin className={cn('size-4', geo.status === 'granted' ? 'text-success' : 'text-warning')} aria-hidden="true" />
+          </span>
           <p className="min-w-0 flex-1 truncate text-sm">
             {geo.status === 'granted' ? (
               <>
@@ -140,6 +162,11 @@ export function AlertComposer({ initialService, initialMode = 'video', geo, onBa
             <span className="shrink-0 text-xs text-muted-foreground">±{Math.round(geo.accuracy)} m</span>
           ) : null}
         </div>
+
+        <div>
+          <div className="mb-2 flex items-end justify-between gap-2">
+            <div><h3 className="text-sm font-bold">Choisissez comment décrire l’urgence</h3><p className="mt-0.5 text-xs text-muted-foreground">La vidéo, la voix ou le texte sont facultatifs.</p></div>
+          </div>
 
         <div className="grid grid-cols-3 gap-1 rounded-xl bg-secondary p-1" role="tablist" aria-label="Mode de saisie">
           {MODES.map((m) => {
@@ -165,6 +192,7 @@ export function AlertComposer({ initialService, initialMode = 'video', geo, onBa
             )
           })}
         </div>
+        </div>
 
         <div role="tabpanel" id="panel-video" aria-labelledby="tab-video" hidden={mode !== 'video'}>
           <VideoCapture onFramesChange={setFrames} onRecordedChange={setHasVideo} />
@@ -189,10 +217,10 @@ export function AlertComposer({ initialService, initialMode = 'video', geo, onBa
         <button
           type="button"
           onClick={() => onSend({ serviceId, description, transcript, hasVideo: hasVideo || frames.length > 0, analysis })}
-          className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-base font-bold text-primary-foreground shadow-lg shadow-primary/30 transition-transform active:scale-[0.98]"
+          className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-base font-bold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:brightness-105 active:scale-[0.98]"
         >
           <Send className="size-5" aria-hidden="true" />
-          Envoyer l’alerte — {service.label}
+          {hasContent ? `Envoyer l’alerte — ${service.label}` : `Envoyer sans détail — ${service.label}`}
         </button>
         <p className="mt-2 text-center text-xs text-muted-foreground">
           Toute fausse alerte est passible de poursuites.

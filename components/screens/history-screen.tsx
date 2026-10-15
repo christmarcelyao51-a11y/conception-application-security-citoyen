@@ -1,6 +1,7 @@
 'use client'
 
 import { ChevronRight, FileClock, Video } from 'lucide-react'
+import Image from 'next/image'
 import { URGENCY_LABELS, type SentAlert } from '@/lib/alert'
 import { getService } from '@/lib/services'
 import { cn } from '@/lib/utils'
@@ -28,19 +29,23 @@ const dateFormatter = new Intl.DateTimeFormat('fr-FR', {
 export function HistoryScreen({ alerts, onOpen }: HistoryScreenProps) {
   return (
     <div className="flex flex-col gap-4 px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-28">
-      <header>
-        <h1 className="text-2xl font-bold">Mes alertes</h1>
-        <p className="text-sm text-muted-foreground">Historique de vos signalements</p>
+      <header className="flex items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Mon activité</p>
+          <h1 className="mt-1 text-2xl font-bold">Mes alertes</h1>
+          <p className="text-sm text-muted-foreground">Historique de vos signalements</p>
+        </div>
+        <span className="rounded-lg border bg-card px-2.5 py-1.5 text-xs font-semibold tabular-nums text-muted-foreground">{alerts.length}</span>
       </header>
 
       {alerts.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed p-10 text-center">
-          <FileClock className="size-8 text-muted-foreground" aria-hidden="true" />
-          <p className="text-sm text-muted-foreground">Aucune alerte envoyée pour le moment.</p>
+        <div className="flex flex-col items-center gap-3 rounded-2xl border bg-card px-6 py-12 text-center">
+          <span className="flex size-12 items-center justify-center rounded-xl bg-secondary"><FileClock className="size-5 text-muted-foreground" aria-hidden="true" /></span>
+          <div><p className="text-sm font-semibold">Aucun signalement</p><p className="mt-1 text-xs text-muted-foreground">Vos demandes apparaîtront ici après leur création.</p></div>
         </div>
       ) : (
         <ul className="flex flex-col gap-2">
-          {alerts.map((a) => {
+          {[...alerts].sort((a, b) => b.createdAt - a.createdAt).map((a) => {
             const service = getService(a.serviceId)
             const Icon = service.icon
             const text = a.analysis?.summary || a.description || a.transcript || 'Alerte vidéo'
@@ -49,10 +54,10 @@ export function HistoryScreen({ alerts, onOpen }: HistoryScreenProps) {
                 <button
                   type="button"
                   onClick={() => onOpen(a.id)}
-                  className="flex w-full items-center gap-3 rounded-2xl border bg-card p-4 text-left hover:bg-accent"
+                  className="flex w-full items-center gap-3 rounded-xl border bg-card p-3.5 text-left transition-colors hover:border-primary/25 hover:bg-accent/50"
                 >
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-secondary">
-                    <Icon className="size-5 text-primary" aria-hidden="true" />
+                  <span className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-white p-1">
+                    {service.logo ? <Image src={service.logo} alt="" width={40} height={40} className="size-full object-contain" /> : <Icon className="size-5 text-primary" aria-hidden="true" />}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2">
@@ -63,7 +68,7 @@ export function HistoryScreen({ alerts, onOpen }: HistoryScreenProps) {
                           a.status === 'annulee'
                             ? 'bg-secondary text-muted-foreground'
                             : a.status === 'cloturee'
-                              ? 'bg-success/15 text-success'
+                            ? 'bg-success/10 text-success'
                               : 'bg-primary/15 text-primary',
                         )}
                       >

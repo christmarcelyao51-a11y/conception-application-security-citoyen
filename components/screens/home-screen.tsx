@@ -17,15 +17,9 @@ type HomeScreenProps = {
 }
 
 function LocationLabel({ geo }: { geo: GeoState }) {
-  if (geo.status === 'granted') {
-    return (
-      <span className="font-mono text-xs">
-        {geo.position.lat.toFixed(4)}, {geo.position.lng.toFixed(4)}
-      </span>
-    )
-  }
-  if (geo.status === 'pending') return <span className="text-xs">Localisation…</span>
-  return <span className="text-xs text-warning">GPS désactivé</span>
+  if (geo.status === 'granted') return <span className="text-xs">Position disponible</span>
+  if (geo.status === 'pending') return <span className="text-xs">Localisation en cours</span>
+  return <span className="text-xs text-warning">GPS à activer</span>
 }
 
 export function HomeScreen({ user, alertCount, geo, activeAlert, onStartAlert, onOpenTracking }: HomeScreenProps) {
@@ -37,8 +31,8 @@ export function HomeScreen({ user, alertCount, geo, activeAlert, onStartAlert, o
             <Image src="/images/security-citoyen-logo.png" alt="" width={48} height={48} className="size-full object-contain" />
           </div>
           <div className="leading-tight">
-            <p className="text-sm font-black tracking-wide">SECURITY</p>
-            <p className="text-sm font-black tracking-wide text-primary">CITOYEN</p>
+            <p className="text-sm font-bold tracking-wide">SECURITY CITOYEN</p>
+            <p className="text-[10px] font-medium tracking-wide text-muted-foreground">Assistance · Côte d’Ivoire</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5">
@@ -54,21 +48,21 @@ export function HomeScreen({ user, alertCount, geo, activeAlert, onStartAlert, o
         <button
           type="button"
           onClick={onOpenTracking}
-          className="flex items-center gap-3 rounded-2xl border border-primary/40 bg-primary/10 p-4 text-left"
+          className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/[0.06] p-3.5 text-left transition-colors hover:bg-primary/10"
         >
           <span className="relative flex size-3 shrink-0">
             <span className="sos-ring absolute inset-0 rounded-full bg-primary" aria-hidden="true" />
             <span className="relative size-3 rounded-full bg-primary" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold">Alerte en cours — {getService(activeAlert.serviceId).label}</span>
-            <span className="block text-xs text-muted-foreground">Suivre l’unité sur la carte</span>
+            <span className="block text-sm font-semibold">Demande en cours · {getService(activeAlert.serviceId).label}</span>
+            <span className="block text-xs text-muted-foreground">Consulter le statut et les informations de suivi</span>
           </span>
           <ChevronRight className="size-5 text-muted-foreground" aria-hidden="true" />
         </button>
       ) : null}
 
-      <section aria-labelledby="sos-title" className="relative isolate flex min-h-[28rem] flex-col justify-between overflow-hidden rounded-[2rem] border border-white/10 px-5 py-5 shadow-2xl shadow-black/30">
+      <section aria-labelledby="sos-title" className="relative isolate flex min-h-[25rem] flex-col justify-between overflow-hidden rounded-3xl border border-white/10 px-5 py-5 shadow-xl shadow-black/20">
         <div className="absolute inset-0 -z-10" aria-hidden="true">
           <Image
             src="/images/welcome-hero.png"
@@ -87,30 +81,30 @@ export function HomeScreen({ user, alertCount, geo, activeAlert, onStartAlert, o
             <span className="size-1.5 rounded-full bg-success shadow-[0_0_10px_var(--success)]" />
             Bonjour {user.firstName}
           </span>
-          <span className="rounded-full border border-white/15 bg-black/25 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/80 backdrop-blur-md">
-            Assistance citoyenne
+            <span className="rounded-full border border-white/15 bg-black/25 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/80 backdrop-blur-md">
+            Services d’urgence
           </span>
         </div>
 
         <div className="flex flex-col items-center gap-4 pb-1 text-center">
-          <div className="relative flex size-40 items-center justify-center">
+          <div className="relative flex size-36 items-center justify-center">
             <span className="sos-ring absolute inset-1 rounded-full bg-primary/35" aria-hidden="true" />
             <span className="sos-ring sos-ring-delay absolute inset-1 rounded-full bg-primary/25" aria-hidden="true" />
             <button
               type="button"
               onClick={() => onStartAlert('autre', 'video')}
-              className="sos-button-breathe relative flex size-32 flex-col items-center justify-center rounded-full border border-white/25 bg-primary text-primary-foreground shadow-[0_12px_40px_oklch(0.62_0.22_25_/_0.45)] ring-8 ring-white/10 transition duration-200 hover:scale-[1.03] hover:bg-primary/90 active:scale-95"
+              className="sos-button-breathe relative flex size-28 flex-col items-center justify-center rounded-full border border-white/25 bg-primary text-primary-foreground shadow-[0_10px_28px_oklch(0.62_0.22_25_/_0.35)] ring-4 ring-white/10 transition duration-200 hover:bg-primary/90 active:scale-95"
               aria-label="Lancer une alerte SOS immédiate"
             >
-              <span className="text-4xl font-black tracking-wider">SOS</span>
+              <span className="text-3xl font-black tracking-wider">SOS</span>
               <span className="mt-0.5 text-[11px] font-semibold">Alerte immédiate</span>
             </button>
           </div>
           <div className="max-w-xs">
-            <h1 id="sos-title" className="text-2xl font-bold tracking-tight text-balance text-white">
+              <h1 id="sos-title" className="text-xl font-bold tracking-tight text-balance text-white">
               Besoin d’aide immédiate ?
             </h1>
-            <p className="mt-1.5 text-sm leading-relaxed text-white/75 text-pretty">
+              <p className="mt-1.5 text-sm leading-relaxed text-white/80 text-pretty">
               Décrivez la situation et partagez votre position avec les services concernés.
             </p>
           </div>
@@ -187,8 +181,8 @@ export function HomeScreen({ user, alertCount, geo, activeAlert, onStartAlert, o
           {[
             'Choisissez le service ou appuyez sur SOS.',
             'Filmez, parlez ou écrivez ce qui se passe.',
-            'L’IA évalue l’urgence et filtre les fausses alertes.',
-            'Suivez l’arrivée des secours en temps réel.',
+            'Les informations transmises aident le centre à évaluer la demande.',
+            'Consultez les mises à jour du statut dans votre historique.',
           ].map((step, i) => (
             <li key={step} className="flex gap-3">
               <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-secondary font-mono text-xs font-semibold">

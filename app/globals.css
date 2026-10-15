@@ -177,7 +177,44 @@
   border: 0;
 }
 
+.map-vehicle-shell {
+  position: relative;
+  display: flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  border-radius: 10px;
+  background: #0284c7;
+  box-shadow: 0 0 0 5px rgb(14 165 233 / 20%), 0 3px 10px rgb(0 0 0 / 45%);
+}
+
+.map-vehicle-shell::after {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 5px;
+  height: 4px;
+  border-radius: 999px;
+  background: #f87171;
+  box-shadow: 0 0 7px rgb(248 113 113 / 85%);
+  animation: map-vehicle-siren 700ms steps(2, jump-none) infinite;
+  content: "";
+}
+
+@keyframes map-vehicle-siren {
+  50% {
+    background: #60a5fa;
+    box-shadow: 0 0 7px rgb(96 165 250 / 85%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .map-vehicle-shell::after {
+    animation: none;
+  }
+
   .sos-ring {
     animation: none;
   }
@@ -203,12 +240,115 @@
   animation: operator-enter 620ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
 }
 
+.operator-dashboard-enter {
+  animation: operator-dashboard-reveal 650ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.operator-login-panel {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  animation: operator-panel-enter 760ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.operator-login-panel::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    radial-gradient(30rem 20rem at 100% 0%, rgb(16 185 129 / 10%), transparent 72%),
+    linear-gradient(135deg, rgb(255 255 255 / 2%), transparent 40%);
+  content: "";
+  pointer-events: none;
+}
+
+.operator-photo-panel::after {
+  position: absolute;
+  z-index: -5;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 22% 24%, rgb(16 185 129 / 17%), transparent 42%),
+    linear-gradient(118deg, transparent 35%, rgb(5 15 26 / 28%) 75%);
+  animation: operator-ambient 12s ease-in-out infinite alternate;
+  content: "";
+  pointer-events: none;
+}
+
 .operator-photo-panel > img {
   animation: operator-photo-drift 28s ease-in-out infinite alternate;
 }
 
 .operator-service-card {
   animation: operator-enter 500ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.operator-service-selected {
+  animation: operator-service-select 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.operator-selected-service {
+  animation: operator-service-preview 360ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.operator-login-submit {
+  position: relative;
+  overflow: hidden;
+}
+
+.operator-login-submit::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -65%;
+  width: 42%;
+  transform: skewX(-20deg);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 32%), transparent);
+  content: "";
+  transition: left 650ms cubic-bezier(0.2, 0.65, 0.3, 1);
+  pointer-events: none;
+}
+
+.operator-login-submit:hover::after {
+  left: 130%;
+}
+
+.operator-service-watermark {
+  position: fixed;
+  z-index: 0;
+  top: 13vh;
+  right: -4vw;
+  width: min(43vw, 590px);
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: rgb(255 255 255 / 4%);
+  opacity: 0.11;
+  filter: grayscale(1);
+  mask-image: radial-gradient(ellipse at center, #000 28%, transparent 73%);
+  pointer-events: none;
+  user-select: none;
+}
+
+.operator-watermark-image {
+  animation: operator-watermark-reveal 900ms ease-out both;
+}
+
+.operator-service-watermark img {
+  mix-blend-mode: screen;
+}
+
+.operator-service-watermark span {
+  position: absolute;
+  right: 9%;
+  bottom: 10%;
+  color: rgb(255 255 255 / 38%);
+  font-size: clamp(1.2rem, 2.5vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .operator-metric {
@@ -245,6 +385,45 @@
   }
 }
 
+@keyframes operator-panel-enter {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(22px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes operator-dashboard-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes operator-watermark-reveal {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes operator-service-select {
+  0% { transform: scale(0.975); }
+  65% { transform: scale(1.025); }
+  100% { transform: scale(1.015); }
+}
+
+@keyframes operator-service-preview {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes operator-ambient {
+  from { opacity: 0.45; }
+  to { opacity: 1; }
+}
+
 @keyframes operator-photo-drift {
   from { transform: scale(1.015); }
   to { transform: scale(1.07); }
@@ -252,8 +431,14 @@
 
 @media (prefers-reduced-motion: reduce) {
   .operator-login-enter,
+  .operator-dashboard-enter,
+  .operator-login-panel,
   .operator-photo-panel > img,
+  .operator-photo-panel::after,
   .operator-service-card,
+  .operator-service-selected,
+  .operator-selected-service,
+  .operator-watermark-image,
   .operator-metric,
   .operator-alert-row {
     animation: none;
@@ -263,5 +448,9 @@
   .operator-metric:hover {
     transition: none;
     transform: none;
+  }
+
+  .operator-login-submit::after {
+    transition: none;
   }
 }

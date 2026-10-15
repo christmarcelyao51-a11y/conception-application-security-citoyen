@@ -15,6 +15,8 @@ import { getNearestStation } from '@/lib/geo'
 import { createOperation, fetchOperationStatus, readOperations, updateOperationStatus, writeOperations } from '@/lib/operations'
 import type { ServiceId } from '@/lib/services'
 
+type AlertSyncState = 'syncing' | 'synced' | 'offline'
+
 type View =
   | { kind: 'tabs' }
   | { kind: 'compose'; serviceId: ServiceId; mode: 'video' | 'voice' | 'text' }
@@ -30,6 +32,7 @@ export function AppShell({ user, onLogout }: AppShellProps) {
   const [tab, setTab] = useState<Tab>('accueil')
   const [view, setView] = useState<View>({ kind: 'tabs' })
   const [alerts, setAlerts] = useState<SentAlert[]>([])
+  const [syncStates, setSyncStates] = useState<Record<string, AlertSyncState>>({})
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
   useEffect(() => {
@@ -44,8 +47,10 @@ export function AppShell({ user, onLogout }: AppShellProps) {
         if (alert.status === 'cloturee' || alert.status === 'annulee') return alert
         try {
           const status = await fetchOperationStatus(alert.id)
+          if (active) setSyncStates((current) => ({ ...current, [alert.id]: 'synced' }))
           return { ...alert, ...status }
         } catch {
+          if (active) setSyncStates((current) => ({ ...current, [alert.id]: 'offline' }))
           return alert
         }
       }))
@@ -107,10 +112,25 @@ export function AppShell({ user, onLogout }: AppShellProps) {
       writeOperations(next)
       return next
     })
-    void createOperation(alert).catch(() => {
-      // Same-browser local storage remains as an offline demo fallback.
+    setSyncStates((current) => ({ ...current, [alert.id]: 'syncing' }))
+    void createOperation(alert).then(() => {
+      setSyncStates((current) => ({ ...current, [alert.id]: 'synced' }))
+    }).catch(() => {
+      setSyncStates((current) => ({ ...current, [alert.id]: 'offline' }))
     })
     setView({ kind: 'tracking', alertId: alert.id })
+  }
+
+  async function retryAlertSync(id: string) {
+    const alert = alerts.find((item) => item.id === id)
+    if (!alert) return
+    setSyncStates((current) => ({ ...current, [id]: 'syncing' }))
+    try {
+      await createOperation(alert)
+      setSyncStates((current) => ({ ...current, [id]: 'synced' }))
+    } catch {
+      setSyncStates((current) => ({ ...current, [id]: 'offline' }))
+    }
   }
 
   function cancelAlert(id: string) {
@@ -145,6 +165,8 @@ export function AppShell({ user, onLogout }: AppShellProps) {
             setTab('accueil')
           }}
           onCancel={cancelAlert}
+          syncState={syncStates[trackingAlert.id]}
+          onRetrySync={() => void retryAlertSync(trackingAlert.id)}
         />
       ) : (
         <>

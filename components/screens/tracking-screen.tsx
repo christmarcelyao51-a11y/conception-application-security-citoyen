@@ -1,6 +1,7 @@
 'use client'
 
 import { ArrowLeft, Check, Clock, MessageSquare, Navigation, Phone, X } from 'lucide-react'
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { LazyMap } from '@/components/map/lazy-map'
 import { URGENCY_LABELS, type SentAlert } from '@/lib/alert'
@@ -9,15 +10,16 @@ import { getService } from '@/lib/services'
 import { cn } from '@/lib/utils'
 
 const TRAVEL_DEMO_MS = 60000
-const AVG_SPEED_KMH = 40
 
 type TrackingScreenProps = {
   alert: SentAlert
   onBack: () => void
   onCancel: (id: string) => void
+  syncState?: 'syncing' | 'synced' | 'offline'
+  onRetrySync?: () => void
 }
 
-export function TrackingScreen({ alert, onBack, onCancel }: TrackingScreenProps) {
+export function TrackingScreen({ alert, onBack, onCancel, syncState, onRetrySync }: TrackingScreenProps) {
   const [now, setNow] = useState(() => Date.now())
   const service = getService(alert.serviceId)
   const Icon = service.icon
@@ -41,13 +43,11 @@ export function TrackingScreen({ alert, onBack, onCancel }: TrackingScreenProps)
   const to = alert.userPosition
   const unitPos = interpolate(from, to, progress)
   const totalKm = distanceKm(from, to)
-  const remainingKm = distanceKm(unitPos, to)
-  const etaMin = Math.max(1, Math.ceil((remainingKm / AVG_SPEED_KMH) * 60))
 
   const steps = [
-    { label: 'Alerte reçue par le centre', done: true },
-    { label: alert.analysis ? 'Analysée par l’IA' : 'Qualifiée par un opérateur', done: now - alert.createdAt > 1500 },
-    { label: `Unité assignée : ${service.unitName}`, done: assigned },
+    { label: 'Demande enregistrée sur cet appareil', done: true },
+    { label: 'Demande transmise au centre', done: syncState === 'synced' },
+    { label: 'Prise en charge par le centre', done: assigned },
     { label: 'En route vers votre position', done: alert.status === 'en-route' || arrived },
     { label: 'Arrivée sur place', done: arrived },
   ]
@@ -78,63 +78,86 @@ export function TrackingScreen({ alert, onBack, onCancel }: TrackingScreenProps)
       <main className="-mt-6 relative z-10 flex flex-1 flex-col gap-4 rounded-t-3xl border-t bg-background px-4 pt-5 pb-8">
         <div className="mx-auto h-1.5 w-12 rounded-full bg-secondary" aria-hidden="true" />
 
-        <section className="flex items-center gap-4" aria-live="polite">
+        <section className="flex items-start gap-3 rounded-2xl border bg-card p-4 shadow-sm" aria-live="polite">
           <div
             className={cn(
-              'flex size-14 shrink-0 items-center justify-center rounded-2xl',
-              cancelled ? 'bg-secondary' : arrived ? 'bg-success/15 text-success' : 'bg-primary/15 text-primary',
+              'flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-background p-1',
+              cancelled ? 'opacity-60' : arrived ? 'border-success/30' : 'border-primary/20',
             )}
           >
-            <Icon className="size-7" aria-hidden="true" />
+            {service.logo ? <Image src={service.logo} alt="" width={40} height={40} className="size-full object-contain" /> : <Icon className="size-6 text-primary" aria-hidden="true" />}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm text-muted-foreground">{service.label}</p>
-            <h1 className="text-xl font-bold text-balance">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{service.label}</p>
+              <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-semibold', arrived ? 'bg-success/10 text-success' : cancelled ? 'bg-secondary text-muted-foreground' : 'bg-primary/10 text-primary')}>
+                {cancelled ? 'Annulée' : arrived ? 'Sur place' : alert.status === 'en-route' ? 'En déplacement' : syncState === 'synced' ? 'Reçue par le centre' : 'En attente'}
+              </span>
+            </div>
+            <h1 className="mt-1 text-lg font-bold leading-snug text-balance">
               {cancelled
                 ? 'Alerte annulée'
                 : arrived
                   ? 'Les secours sont sur place'
                   : assigned
-                    ? `Arrivée dans ~${etaMin} min`
-                    : 'Demande transmise, en attente de prise en charge'}
+                    ? 'Une équipe est en déplacement'
+                    : syncState === 'synced'
+                      ? 'Demande reçue par le centre'
+                      : 'En attente de confirmation du centre'}
             </h1>
+            <p className="mt-1 text-xs text-muted-foreground">Référence {alert.id.slice(-6).toUpperCase()} · signalée à {new Date(alert.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
           </div>
         </section>
 
+        {syncState === 'offline' ? (
+          <section role="alert" className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4">
+            <h2 className="text-sm font-semibold text-destructive">Transmission au centre non confirmée</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              La demande est enregistrée sur cet appareil, mais le centre n’a pas confirmé sa réception. Appelez directement le service d’urgence pour signaler la situation.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {service.phone ? (
+                <a href={`tel:${service.phone}`} className="inline-flex h-10 items-center gap-2 rounded-lg bg-destructive px-3 text-sm font-semibold text-white">
+                  <Phone className="size-4" aria-hidden="true" /> Appeler le {service.phone}
+                </a>
+              ) : null}
+              <button type="button" onClick={onRetrySync} className="h-10 rounded-lg border px-3 text-sm font-semibold">
+                Réessayer l’envoi
+              </button>
+            </div>
+          </section>
+        ) : syncState === 'syncing' ? (
+          <p role="status" className="rounded-xl border bg-card px-3 py-2 text-sm text-muted-foreground">
+            Transmission au centre en cours…
+          </p>
+        ) : null}
+
         {!cancelled ? (
-          <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-xl bg-card p-3">
-              <Clock className="mb-1 size-4 text-muted-foreground" aria-hidden="true" />
-              <p className="font-mono text-lg font-semibold">{arrived ? '0' : assigned ? etaMin : '—'}</p>
-              <p className="text-xs text-muted-foreground">min restantes</p>
-            </div>
-            <div className="rounded-xl bg-card p-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-xl border bg-card p-3">
               <Navigation className="mb-1 size-4 text-muted-foreground" aria-hidden="true" />
-              <p className="font-mono text-lg font-semibold">{formatDistance(remainingKm)}</p>
-              <p className="text-xs text-muted-foreground">sur {formatDistance(totalKm)}</p>
+              <p className="font-mono text-lg font-semibold">{formatDistance(totalKm)}</p>
+              <p className="text-xs text-muted-foreground">distance indicative</p>
             </div>
-            <div className="rounded-xl bg-card p-3">
+            <div className="rounded-xl border bg-card p-3">
               <span className="mb-1 block size-4 rounded-full bg-primary/20 p-1" aria-hidden="true">
                 <span className="block size-2 rounded-full bg-primary" />
               </span>
               <p className="text-lg font-semibold">
                 {alert.analysis ? URGENCY_LABELS[alert.analysis.urgencyLevel] : 'N/A'}
               </p>
-              <p className="text-xs text-muted-foreground">urgence IA</p>
+              <p className="text-xs text-muted-foreground">niveau de priorité</p>
             </div>
           </div>
         ) : null}
 
-        {!cancelled ? (
-          <div className="h-2 overflow-hidden rounded-full bg-secondary" role="progressbar" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100} aria-label="Progression de l’unité">
-            <div className="h-full rounded-full bg-primary transition-all duration-1000" style={{ width: `${progress * 100}%` }} />
-          </div>
-        ) : null}
-
-        <section aria-labelledby="timeline-title" className="rounded-2xl border bg-card p-4">
-          <h2 id="timeline-title" className="mb-3 text-sm font-semibold">
+        <section aria-labelledby="timeline-title" className="rounded-2xl border bg-card p-4 shadow-sm">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 id="timeline-title" className="text-sm font-semibold">
             Suivi de l’intervention
-          </h2>
+            </h2>
+            <Clock className="size-4 text-muted-foreground" aria-hidden="true" />
+          </div>
           <ol className="flex flex-col gap-3">
             {steps.map((step) => (
               <li key={step.label} className="flex items-center gap-3 text-sm">
@@ -198,7 +221,7 @@ export function TrackingScreen({ alert, onBack, onCancel }: TrackingScreenProps)
         ) : null}
 
         <p className="text-center text-xs text-muted-foreground">
-          Démonstration : le déplacement de l’unité est simulé.
+          La distance est calculée à vol d’oiseau. Le déplacement affiché sur la carte est indicatif.
         </p>
       </main>
     </div>

@@ -16,7 +16,7 @@ export function BottomNav({ tab, onChange }: { tab: Tab; onChange: (tab: Tab) =>
   return (
     <nav
       aria-label="Navigation principale"
-      className="fixed inset-x-0 bottom-0 z-[1000] mx-auto w-full max-w-md border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-[1000] mx-auto w-full max-w-md border-t bg-background pb-[env(safe-area-inset-bottom)]"
     >
       <ul className="grid grid-cols-4">
         {ITEMS.map((item) => {
@@ -29,11 +29,12 @@ export function BottomNav({ tab, onChange }: { tab: Tab; onChange: (tab: Tab) =>
                 onClick={() => onChange(item.id)}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex w-full flex-col items-center gap-1 py-3 text-xs font-medium transition-colors',
+                  'relative flex w-full flex-col items-center gap-1.5 py-2.5 text-[11px] font-medium transition-colors',
                   active ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
                 )}
               >
-                <Icon className="size-5" aria-hidden="true" />
+                {active ? <span className="absolute inset-x-5 top-0 h-0.5 rounded-full bg-primary" aria-hidden="true" /> : null}
+                <Icon className={cn('size-[19px]', active && 'stroke-[2.2]')} aria-hidden="true" />
                 {item.label}
               </button>
             </li>

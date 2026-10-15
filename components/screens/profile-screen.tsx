@@ -143,11 +143,10 @@ export function ProfileScreen({ user, avatarUrl, onAvatarChange, onLogout }: Pro
         <p className="mt-1 text-sm text-muted-foreground">Gardez vos informations utiles à portée de main.</p>
       </header>
 
-      <section className="relative overflow-hidden rounded-3xl border bg-gradient-to-br from-card via-card to-primary/10 p-5 shadow-lg shadow-black/10">
-        <div className="absolute -right-10 -top-16 size-44 rounded-full bg-primary/10 blur-3xl" aria-hidden="true" />
-        <div className="relative flex items-center gap-4">
-          <div className="relative size-20 shrink-0 rounded-full bg-secondary p-1 ring-1 ring-white/10">
-            <div className="relative flex size-full items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary/30 to-secondary text-2xl font-bold">
+      <section className="rounded-2xl border bg-card p-4 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="relative size-20 shrink-0 rounded-full bg-secondary p-1 ring-1 ring-border">
+              <div className="relative flex size-full items-center justify-center overflow-hidden rounded-full bg-primary/10 text-2xl font-semibold text-primary">
               {avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={avatarUrl} alt={`Photo de ${details.firstName}`} className="size-full object-cover" />
@@ -232,13 +231,13 @@ export function ProfileScreen({ user, avatarUrl, onAvatarChange, onLogout }: Pro
           <Field id="contact-phone" label="Téléphone du proche" type="tel" value={details.emergencyPhone} onChange={(v) => update('emergencyPhone', v)} />
         </fieldset>
 
-        <div className="flex gap-3 rounded-2xl border border-success/20 bg-success/5 p-3.5 text-xs leading-relaxed text-muted-foreground">
+        <div className="flex gap-3 rounded-xl border bg-secondary/40 p-3.5 text-xs leading-relaxed text-muted-foreground">
           <ShieldCheck className="size-5 shrink-0 text-success" aria-hidden="true" />
           <p>Ces informations restent enregistrées sur cet appareil. Elles ne sont pas envoyées aux secours par cette version de l’application.</p>
         </div>
 
         <div className="flex items-center gap-3">
-          <button type="submit" className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-primary font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:bg-primary/90 active:scale-[0.99]">
+          <button type="submit" className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-primary font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.99]">
             <Save className="size-4" aria-hidden="true" />
             Enregistrer le profil
           </button>
